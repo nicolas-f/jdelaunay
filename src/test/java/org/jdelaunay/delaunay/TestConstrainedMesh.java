@@ -2535,4 +2535,22 @@ public class TestConstrainedMesh extends BaseUtility {
                 assertTrue(ed22 == mesh.getEdges().get(index));
         }
 
+        public void testPrecision2() throws DelaunayError {
+            ConstrainedMesh mesh = new ConstrainedMesh();
+            mesh.addPoint(new DPoint(1, 2, 0));
+            mesh.addPoint(new DPoint(1, 5, 0));
+            mesh.addPoint(new DPoint(3, 4, 0));
+            mesh.addPoint(new DPoint(3 + 1e-12, 3 - 1e12, 0)); //bad duck
+            mesh.addPoint(new DPoint(5, 4, 0));
+            mesh.addPoint(new DPoint(10, 10, 0));
+            mesh.processDelaunay();
+            List<DTriangle> tri = mesh.getTriangleList();
+            assertEquals(5, tri.size());
+            assertEquals(3, tri.get(0).getArea(), 1e-12);
+            assertEquals(1, tri.get(1).getArea(), 1e-12);
+            assertEquals(1, tri.get(2).getArea(), 1e-12);
+            assertEquals(1, tri.get(3).getArea(), 1e-12);
+            assertEquals(14.5, tri.get(4).getArea(), 1e-12);
+        }
+
 }
