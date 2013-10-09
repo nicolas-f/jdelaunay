@@ -33,9 +33,18 @@ package org.jdelaunay.delaunay.tools;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+
+import com.vividsolutions.jts.algorithm.CGAlgorithms;
+import com.vividsolutions.jts.algorithm.RobustLineIntersector;
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.LineSegment;
+import com.vividsolutions.jts.index.strtree.STRtree;
+import org.jdelaunay.delaunay.ConstrainedMesh;
 import org.jdelaunay.delaunay.error.DelaunayError;
 import org.jdelaunay.delaunay.geometries.DEdge;
 import org.jdelaunay.delaunay.geometries.DPoint;
+import org.jdelaunay.delaunay.geometries.DTriangle;
 import org.jdelaunay.delaunay.geometries.Element;
 
 /**
@@ -209,4 +218,61 @@ public final class Tools {
 		return true;
 	}
 
+    private static Envelope getTriangleEnvelope(DTriangle triangle) {
+        List<DPoint> points = triangle.getPoints();
+        Envelope env = new Envelope(points.get(0).getCoordinate());
+        env.expandToInclude(points.get(1).getCoordinate());
+        env.expandToInclude(points.get(2).getCoordinate());
+        return env;
+    }
+
+    public static boolean isTrianglesPieceWiseLinearComplex(DTriangle triangle, DTriangle otherTriangle) {
+        for(DEdge edge : triangle.getEdges()) {
+            LineSegment ls = new LineSegment(edge.getStartPoint().getCoordinate(), edge.getEndPoint().getCoordinate());
+            for(DEdge otherEdge : otherTriangle.getEdges()) {
+                // Test edge/edge intersection
+                LineSegment ls2 = new LineSegment(otherEdge.getStartPoint().getCoordinate(), otherEdge.getEndPoint().getCoordinate());
+                RobustLineIntersector intTest = new RobustLineIntersector();
+                intTest.computeIntersection(ls.p0, ls.p1, ls2.p0, ls2.p1);
+                if(intTest.hasIntersection()) {
+                    for(int idIntersect=0; idIntersect<intTest.getIntersectionNum(); idIntersect++) {
+                        Coordinate intCoord = intTest.getIntersection(idIntersect);
+                        // If the intersection point does not belong to ls then this mesh is not plc
+                        if(!intCoord.equals2D(ls.p0) && !intCoord.equals2D(ls.p1)) {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Check the mesh result (Triangles)
+     * The rule is two segments only can intersect at a shared vertex.
+     * @return True if all segments in the mesh intersects at a common vertex.
+     */
+    public static boolean isMeshPieceWiseLinearComplex(ConstrainedMesh mesh) {
+        // Create search structure
+        STRtree stRtree = new STRtree(mesh.getPoints().size());
+        for(DTriangle triangle : mesh.getTriangleList()) {
+            stRtree.insert(getTriangleEnvelope(triangle), triangle);
+        }
+        // Check intersection
+        for(DTriangle triangle : mesh.getTriangleList()) {
+            Envelope env = getTriangleEnvelope(triangle);
+            List queryResult = stRtree.query(env);
+            for(Object res : queryResult) {
+                // Check if it is another instance of DTriangle
+                if(res instanceof DTriangle && res != triangle) {
+                    DTriangle otherTriangle = (DTriangle)res;
+                    if(!isTrianglesPieceWiseLinearComplex(triangle, otherTriangle)) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
 }

@@ -46,6 +46,7 @@ import org.jdelaunay.delaunay.error.DelaunayError;
 import org.jdelaunay.delaunay.geometries.DEdge;
 import org.jdelaunay.delaunay.geometries.DPoint;
 import org.jdelaunay.delaunay.geometries.DTriangle;
+import org.jdelaunay.delaunay.tools.Tools;
 
 /**
  * This class checks that the constrained triangulation is well performed.
@@ -2554,6 +2555,7 @@ public class TestConstrainedMesh extends BaseUtility {
 
         public void testPrecision() throws Exception {
             ConstrainedMesh mesh = new ConstrainedMesh();
+            //mesh.setIncrementalMeshCheck(true);
             List<DEdge> edges = new LinkedList<DEdge>();
             Envelope testEnv = new Envelope(306425, 306575, 2252700, 2253500);
             File eFile = new File(TestConstrainedMesh.class.getResource("dedge.csv").toURI());
@@ -2578,8 +2580,8 @@ public class TestConstrainedMesh extends BaseUtility {
             mesh.setConstraintEdges(edges);
             mesh.forceConstraintIntegrity();
             mesh.processDelaunay();
+            assertTrue(Tools.isMeshPieceWiseLinearComplex(mesh));
             mesh.setConstraintEdges(new ArrayList<DEdge>());
-            TestTools.show(mesh);
         }
 
 }

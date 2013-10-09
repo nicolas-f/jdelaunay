@@ -104,6 +104,8 @@ public class ConstrainedMesh implements Serializable {
 	private boolean meshComputed;
 	//Is the debug level used ?
 	private boolean verbose;
+    // Check mesh integrity on each Triangle insertion, useful for debugging
+    private boolean incrementalMeshCheck = false;
 	// GIDs
 	private int pointGID;
 	private int edgeGID;
@@ -358,7 +360,15 @@ public class ConstrainedMesh implements Serializable {
 		triangle.setGID(triangleGID);
 	}
 
-	/**
+    /**
+     * Incremental mesh check will greatly increase the computational time of meshing process.
+     * @param incrementalMeshCheck If true the call to processDelaunay will check mesh consistency at each mesh iteration.
+     */
+    public void setIncrementalMeshCheck(boolean incrementalMeshCheck) {
+        this.incrementalMeshCheck = incrementalMeshCheck;
+    }
+
+    /**
 	 * Return true if tri is one of the triangles of this mesh.</p><p>
          * <strong>BE EXTREMELY CAREFUL !</strong> : this method will be completely
          * inefficient, as the triangle's data structure is not kept sorted. To obtain
@@ -718,7 +728,6 @@ public class ConstrainedMesh implements Serializable {
 			}
 			//we search for intersections only if we have at least two edges...
 			if (edgeBuffer.size() > 1) {
-				e2 = edgeBuffer.get(0);
 				j = 1;
 				while (j < edgeBuffer.size()) {
 					//We walk through our buffer
@@ -1187,6 +1196,11 @@ public class ConstrainedMesh implements Serializable {
 				//We retrieve the potential bad edges, and treat them.
 				badEdgesQueueList = bound.getBadEdges();
 				processBadEdges();
+                if(incrementalMeshCheck) {
+                    if(!Tools.isMeshPieceWiseLinearComplex(this)) {
+                        throw new DelaunayError("Mesh is self-intersecting !");
+                    }
+                }
 			}
 
 			meshComputed = true;
