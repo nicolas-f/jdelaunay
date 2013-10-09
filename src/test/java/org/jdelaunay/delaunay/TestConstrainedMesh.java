@@ -30,9 +30,18 @@
  */
 package org.jdelaunay.delaunay;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.StringTokenizer;
+
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Envelope;
 import org.jdelaunay.delaunay.error.DelaunayError;
 import org.jdelaunay.delaunay.geometries.DEdge;
 import org.jdelaunay.delaunay.geometries.DPoint;
@@ -2535,22 +2544,42 @@ public class TestConstrainedMesh extends BaseUtility {
                 assertTrue(ed22 == mesh.getEdges().get(index));
         }
 
-        public void testPrecision2() throws DelaunayError {
+        double[] readDouble(StringTokenizer st, int length) {
+            double[] db = new double[length];
+            for(int i=0; i<length; i++) {
+                db[i] = Double.valueOf(st.nextToken());
+            }
+            return db;
+        }
+
+        public void testPrecision() throws Exception {
             ConstrainedMesh mesh = new ConstrainedMesh();
-            mesh.addPoint(new DPoint(1, 2, 0));
-            mesh.addPoint(new DPoint(1, 5, 0));
-            mesh.addPoint(new DPoint(3, 4, 0));
-            mesh.addPoint(new DPoint(3 + 1e-12, 3 - 1e12, 0)); //bad duck
-            mesh.addPoint(new DPoint(5, 4, 0));
-            mesh.addPoint(new DPoint(10, 10, 0));
+            List<DEdge> edges = new LinkedList<DEdge>();
+            Envelope testEnv = new Envelope(306425, 306575, 2252700, 2253500);
+            File eFile = new File(TestConstrainedMesh.class.getResource("dedge.csv").toURI());
+            if(eFile.exists()) {
+                FileReader edFile = new FileReader(eFile);
+                try {
+                    BufferedReader bufferedReader = new BufferedReader(edFile);
+                    String line;
+                    while((line = bufferedReader.readLine()) != null) {
+                        StringTokenizer st = new StringTokenizer(line, ",");
+                        double[] pts = readDouble(st, 6);
+                        Coordinate pt = new Coordinate(pts[0], pts[1], pts[2]);
+                        Coordinate pt2 = new Coordinate(pts[3], pts[4], pts[5]);
+                        if(testEnv.contains(pt) && testEnv.contains(pt2)) {
+                            edges.add(new DEdge(pt.x, pt.y, pt.z, pt2.x, pt2.y, pt2.z));
+                        }
+                    }
+                } finally {
+                    edFile.close();
+                }
+            }
+            mesh.setConstraintEdges(edges);
+            mesh.forceConstraintIntegrity();
             mesh.processDelaunay();
-            List<DTriangle> tri = mesh.getTriangleList();
-            assertEquals(5, tri.size());
-            assertEquals(3, tri.get(0).getArea(), 1e-12);
-            assertEquals(1, tri.get(1).getArea(), 1e-12);
-            assertEquals(1, tri.get(2).getArea(), 1e-12);
-            assertEquals(1, tri.get(3).getArea(), 1e-12);
-            assertEquals(14.5, tri.get(4).getArea(), 1e-12);
+            mesh.setConstraintEdges(new ArrayList<DEdge>());
+            TestTools.show(mesh);
         }
 
 }

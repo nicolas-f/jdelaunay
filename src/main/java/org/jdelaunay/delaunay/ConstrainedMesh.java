@@ -165,7 +165,7 @@ public class ConstrainedMesh implements Serializable {
 	 * Set the list of edges that are used as constraints during triangulation
 	 * @param constraint
 	 */
-	public final void setConstraintEdges(ArrayList<DEdge> constraint) throws DelaunayError {
+	public final void setConstraintEdges(List<DEdge> constraint) throws DelaunayError {
 		this.constraintEdges = new ArrayList<DEdge>();
 		for (DEdge e : constraint) {
 			//We lock the edge. It will not be supposed to be switched

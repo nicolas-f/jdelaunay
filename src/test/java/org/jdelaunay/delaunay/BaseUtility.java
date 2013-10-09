@@ -147,7 +147,7 @@ public class BaseUtility extends TestCase {
 	 * A DTriangle is made of 3 different edges
 	 * @param aMesh
 	 */
-	public void assertCoherence(ConstrainedMesh aMesh) {
+	public static void assertCoherence(ConstrainedMesh aMesh) {
 		// Assert edges correctly defined
 		boolean correct = true;
 		DEdge myEdge;
